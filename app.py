@@ -14,6 +14,19 @@ if st.button("Analyze"):
 
         with st.spinner("Analyzing..."):
             result = analyze_stock(ticker)
+            price_history = result["price_history"]
+
+        price_history["SMA20"] = (
+            price_history["Close"]
+            .rolling(20)
+            .mean()
+        )
+
+        price_history["SMA50"] = (
+            price_history["Close"]
+            .rolling(50)
+            .mean()
+        )
 
         company = result["company"]
         tech = result["technical"]
@@ -36,6 +49,17 @@ if st.button("Analyze"):
         # -------------------------
         # Technical Section
         # -------------------------
+        
+        st.subheader("📈 Price Chart")
+
+        chart_data = (
+               price_history
+               .set_index("Date")[["Close", "SMA20", "SMA50"]]
+        )
+
+        st.line_chart(chart_data)
+
+        
         st.subheader("📈 Technical Metrics")
 
         col1, col2, col3 = st.columns(3)

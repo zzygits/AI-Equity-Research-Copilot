@@ -15,6 +15,8 @@ def get_price_history(ticker: str, period: str = "1y") -> pd.DataFrame:
 
     if hist.empty:
         raise ValueError(f"No price data found for {ticker}")
+    
+    hist = hist.reset_index()
 
     return hist
 
@@ -103,21 +105,22 @@ def analyze_stock(ticker: str) -> dict:
 
     price_df = get_price_history(ticker)
     company = get_company_info(ticker)
-
     tech = compute_technical_metrics(price_df)
     risk = compute_risk_features(price_df)
 
     return {
         "company": company,
         "technical": tech,
-        "risk": risk
+        "risk": risk,
+        "price_history": price_df
     }
 
 # =========================================================
-# 5. AI REPORT LAYER (TEXT GENERATION)
+# 6. AI ANALYST REPORT
 # =========================================================
 
 def generate_ai_report(result: dict) -> str:
+
     company = result["company"]
     tech = result["technical"]
     risk = result["risk"]
@@ -141,4 +144,5 @@ STOCK ANALYSIS REPORT: {company['name']} ({company['ticker']})
 🧠 Interpretation
 The stock shows {'strong' if tech['total_return_1y'] > 0.2 else 'moderate'} momentum with {'high' if tech['volatility'] > 0.3 else 'controlled'} volatility characteristics.
 """
+
     return report
