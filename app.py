@@ -1,5 +1,7 @@
 import streamlit as st
 from utils.finance import analyze_stock
+from utils.finance import generate_ai_report
+
 
 st.set_page_config(page_title="AI Equity Research Copilot", layout="wide")
 
@@ -13,15 +15,21 @@ if st.button("Analyze"):
         with st.spinner("Analyzing..."):
             result = analyze_stock(ticker)
 
+        company = result["company"]
+        tech = result["technical"]
+        risk = result["risk"]
+
         # -------------------------
         # Company Section
         # -------------------------
         st.subheader("🏢 Company Overview")
 
-        st.write("Name:", result["company"]["name"])
-        st.write("Sector:", result["company"]["sector"])
-        st.write("Industry:", result["company"]["industry"])
-        st.write("Market Cap:", result["company"]["market_cap"])
+        st.write("Name:", company["name"])
+        st.write("Sector:", company["sector"])
+        st.write("Industry:", company["industry"])
+        st.write("Market Cap:", company["market_cap"])
+        st.subheader("📝 Business Summary")
+        st.write(company["description"])    
 
         st.divider()
 
@@ -32,9 +40,20 @@ if st.button("Analyze"):
 
         col1, col2, col3 = st.columns(3)
 
-        col1.metric("Price", result["technical"]["latest_price"])
-        col2.metric("1Y Return", f"{round(result['technical']['total_return_1y']*100, 2)}%")
-        col3.metric("Volatility", f"{round(result['technical']['volatility']*100, 2)}%")
+        col1.metric(
+            "Current Price",
+            f"${tech['latest_price']:.2f}"
+        )
+
+        col2.metric(
+            "1Y Return",
+            f"{tech['total_return_1y']:.2%}"
+        )
+
+        col3.metric(
+            "Volatility",
+            f"{tech['volatility']:.2%}"
+        )
 
         st.divider()
 
@@ -43,9 +62,15 @@ if st.button("Analyze"):
         # -------------------------
         st.subheader("⚠️ Risk Metrics")
 
-        st.write("Max Drawdown:", result["risk"]["max_drawdown"])
-        st.write("Best Day:", result["risk"]["best_day"])
-        st.write("Worst Day:", result["risk"]["worst_day"])
+        st.write(f"Max Drawdown: {risk['max_drawdown']:.2%}")
+        st.write(f"Best Day: {risk['best_day']:.2%}")
+        st.write(f"Worst Day: {risk['worst_day']:.2%}")
+
+        # -------------------------
+        # AI Analyst Report Section
+        # -------------------------
+        st.subheader("🧠 AI Analyst Report")
+        st.write(generate_ai_report(result))
 
     else:
         st.warning("Please enter a ticker")

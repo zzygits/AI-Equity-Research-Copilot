@@ -23,6 +23,15 @@ def get_price_history(ticker: str, period: str = "1y") -> pd.DataFrame:
 # 2. COMPANY INFO LAYER
 # =========================================================
 
+def format_market_cap(value):
+    if value >= 1_000_000_000_000:
+        return f"${value/1_000_000_000_000:.2f}T"
+    elif value >= 1_000_000_000:
+        return f"${value/1_000_000_000:.2f}B"
+    elif value >= 1_000_000:
+        return f"${value/1_000_000:.2f}M"
+    return str(value)
+    
 def get_company_info(ticker: str) -> dict:
     stock = yf.Ticker(ticker)
     info = stock.info
@@ -33,7 +42,7 @@ def get_company_info(ticker: str) -> dict:
         "sector": info.get("sector"),
         "industry": info.get("industry"),
         "country": info.get("country"),
-        "market_cap": info.get("marketCap"),
+        "market_cap": format_market_cap(info.get("marketCap")),
         "currency": info.get("currency"),
         "website": info.get("website"),
         "description": info.get("longBusinessSummary")
@@ -103,3 +112,33 @@ def analyze_stock(ticker: str) -> dict:
         "technical": tech,
         "risk": risk
     }
+
+# =========================================================
+# 5. AI REPORT LAYER (TEXT GENERATION)
+# =========================================================
+
+def generate_ai_report(result: dict) -> str:
+    company = result["company"]
+    tech = result["technical"]
+    risk = result["risk"]
+
+    report = f"""
+STOCK ANALYSIS REPORT: {company['name']} ({company['ticker']})
+
+📌 Overview
+{company['name']} operates in the {company['sector']} sector, specifically {company['industry']}.
+
+📈 Performance
+- 1Y Return: {tech['total_return_1y']*100:.2f}%
+- Current Price: ${tech['latest_price']:.2f}
+- Volatility: {tech['volatility']*100:.2f}%
+
+⚠️ Risk
+- Max Drawdown: {risk['max_drawdown']*100:.2f}%
+- Best Day: {risk['best_day']*100:.2f}%
+- Worst Day: {risk['worst_day']*100:.2f}%
+
+🧠 Interpretation
+The stock shows {'strong' if tech['total_return_1y'] > 0.2 else 'moderate'} momentum with {'high' if tech['volatility'] > 0.3 else 'controlled'} volatility characteristics.
+"""
+    return report
