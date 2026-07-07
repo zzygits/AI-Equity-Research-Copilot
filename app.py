@@ -1,8 +1,7 @@
 import plotly.graph_objects as go
 import streamlit as st
 from utils.finance import analyze_stock
-from utils.finance import generate_ai_report
-
+from utils.ai import generate_ai_report
 
 st.set_page_config(page_title="AI Equity Research Copilot", layout="wide")
 
