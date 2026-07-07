@@ -57,9 +57,27 @@ def get_company_info(ticker: str) -> dict:
         "description": info.get("longBusinessSummary"),
     }
 
+# =========================================================
+# 3. FUNDAMENTAL ANALYSIS
+# =========================================================
+
+def get_fundamental_metrics(ticker: str) -> dict:
+
+    stock = yf.Ticker(ticker)
+    info = stock.info
+
+    return {
+        "trailing_pe": info.get("trailingPE"),
+        "forward_pe": info.get("forwardPE"),
+        "peg_ratio": info.get("pegRatio"),
+        "roe": info.get("returnOnEquity"),
+        "profit_margin": info.get("profitMargins"),
+        "revenue_growth": info.get("revenueGrowth"),
+        "debt_to_equity": info.get("debtToEquity"),
+    }
 
 # =========================================================
-# 3. TECHNICAL ANALYSIS
+# 4. TECHNICAL ANALYSIS
 # =========================================================
 
 def compute_technical_metrics(price_df: pd.DataFrame) -> dict:
@@ -84,7 +102,7 @@ def compute_technical_metrics(price_df: pd.DataFrame) -> dict:
 
 
 # =========================================================
-# 4. RISK ANALYSIS
+# 5. RISK ANALYSIS
 # =========================================================
 
 def compute_risk_features(price_df: pd.DataFrame) -> dict:
@@ -105,7 +123,7 @@ def compute_risk_features(price_df: pd.DataFrame) -> dict:
 
 
 # =========================================================
-# 5. MASTER ANALYSIS ENGINE
+# 6. MASTER ANALYSIS ENGINE
 # =========================================================
 
 def analyze_stock(ticker: str) -> dict:
@@ -117,12 +135,15 @@ def analyze_stock(ticker: str) -> dict:
 
     company = get_company_info(ticker)
 
+    fundamentals = get_fundamental_metrics(ticker)
+
     technical = compute_technical_metrics(price_history)
 
     risk = compute_risk_features(price_history)
 
     return {
         "company": company,
+        "fundamentals": fundamentals,
         "technical": technical,
         "risk": risk,
         "price_history": price_history,
@@ -130,7 +151,7 @@ def analyze_stock(ticker: str) -> dict:
 
 
 # =========================================================
-# 6. AI ANALYST REPORT
+# 7. AI ANALYST REPORT
 # =========================================================
 
 def generate_ai_report(result: dict) -> str:

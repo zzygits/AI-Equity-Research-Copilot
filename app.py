@@ -1,3 +1,4 @@
+import plotly.graph_objects as go
 import streamlit as st
 from utils.finance import analyze_stock
 from utils.finance import generate_ai_report
@@ -16,8 +17,17 @@ if st.button("Analyze"):
             result = analyze_stock(ticker)
             price_history = result["price_history"]
 
-        price_history["SMA20"] = price_history["Close"].rolling(20).mean()
-        price_history["SMA50"] = price_history["Close"].rolling(50).mean()
+        price_history["SMA20"] = (
+            price_history["Close"]
+            .rolling(20)
+            .mean()
+        )
+
+        price_history["SMA50"] = (
+            price_history["Close"]
+            .rolling(50)
+            .mean()
+        )
 
         company = result["company"]
         tech = result["technical"]
@@ -38,15 +48,95 @@ if st.button("Analyze"):
         st.divider()
 
         # -------------------------
-        # Technical Section
+        # Chart Section
         # -------------------------
         
-        st.subheader("📈 Price Chart")
+        st.subheader("📈 Stock Price Chart")
 
-        chart_data = price_history.set_index("Date")[["Close", "SMA20", "SMA50"]]
+        fig = go.Figure()
 
-        st.line_chart(chart_data)
-        
+        fig.add_trace(
+            go.Scatter(
+                x=price_history["Date"],
+                y=price_history["Close"],
+                mode="lines",
+                name="Close Price"
+            )
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=price_history["Date"],
+                y=price_history["SMA20"],
+                mode="lines",
+                name="20-Day SMA"
+            )
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=price_history["Date"],
+                y=price_history["SMA50"],
+                mode="lines",
+                name="50-Day SMA"
+            )
+        )
+
+        fig.update_layout(
+            title="1-Year Price History",
+            xaxis_title="Date",
+            yaxis_title="Price (USD)",
+            height=500,
+            hovermode="x unified"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        # -------------------------
+        # Fundamental Section
+        # -------------------------
+
+        fundamentals = result["fundamentals"]
+
+        st.subheader("📊 Fundamental Analysis")
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric(
+            "P/E Ratio",
+            f"{fundamentals['trailing_pe']:.2f}" if fundamentals["trailing_pe"] else "N/A"
+        )
+
+        col2.metric(
+            "Forward P/E",
+            f"{fundamentals['forward_pe']:.2f}" if fundamentals["forward_pe"] else "N/A"
+        )
+
+        col3.metric(
+            "PEG Ratio",
+            f"{fundamentals['peg_ratio']:.2f}" if fundamentals["peg_ratio"] else "N/A"
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric(
+            "ROE",
+            f"{fundamentals['roe']:.2%}" if fundamentals["roe"] else "N/A"
+        )
+
+        col2.metric(
+            "Profit Margin",
+            f"{fundamentals['profit_margin']:.2%}" if fundamentals["profit_margin"] else "N/A"
+        )
+
+        col3.metric(
+            "Revenue Growth",
+            f"{fundamentals['revenue_growth']:.2%}" if fundamentals["revenue_growth"] else "N/A"
+        )
+
+        # -------------------------
+        # Technical Section
+        # -------------------------
 
         st.subheader("📈 Technical Metrics")
 
@@ -82,7 +172,8 @@ if st.button("Analyze"):
         # AI Analyst Report Section
         # -------------------------
         st.subheader("🧠 AI Analyst Report")
-        st.write(generate_ai_report(result))
+        with st.container(border=True):
+            st.markdown(generate_ai_report(result))
 
     else:
         st.warning("Please enter a ticker")
