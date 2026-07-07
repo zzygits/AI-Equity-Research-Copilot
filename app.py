@@ -54,6 +54,24 @@ if st.button("Analyze"):
         st.divider()
 
         # -------------------------
+        # News Section
+        # -------------------------
+
+        news = result["news"]
+
+        st.subheader("📰 Latest News")
+
+        if news:
+            for article in news:
+                st.markdown(f"**{article['title']}**")
+                st.caption(article["published"])
+                st.write(article["summary"])
+                st.divider()
+                
+        else:
+            st.info("No recent news found.")
+
+        # -------------------------
         # Investment Score Section
         # -------------------------
 
@@ -215,3 +233,5 @@ if st.button("Analyze"):
 
     else:
         st.warning("Please enter a ticker")
+
+    st.write(result["news"])

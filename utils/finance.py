@@ -1,6 +1,7 @@
 import yfinance as yf
 import pandas as pd
 from utils.scoring import compute_investment_score
+from utils.news import get_company_news
 
 # =========================================================
 # 1. HELPER FUNCTIONS
@@ -139,6 +140,7 @@ def analyze_stock(ticker: str) -> dict:
     fundamentals = get_fundamental_metrics(ticker)
     technical = compute_technical_metrics(price_history)
     risk = compute_risk_features(price_history)
+    news = get_company_news(ticker)
     investment_score = compute_investment_score({
     "technical": technical,
     "risk": risk,
@@ -150,6 +152,7 @@ def analyze_stock(ticker: str) -> dict:
         "fundamentals": fundamentals,
         "technical": technical,
         "risk": risk,
+        "news": news,
         "price_history": price_history,
         "investment_score": investment_score,
     }
