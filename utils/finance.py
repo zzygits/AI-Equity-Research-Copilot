@@ -1,119 +1,133 @@
-# finance.py
-
 import yfinance as yf
 import pandas as pd
-import numpy as np
 
 
 # =========================================================
-# 1. DATA FETCH LAYER
+# 1. HELPER FUNCTIONS
+# =========================================================
+
+def format_market_cap(value):
+    """Convert market cap into human-readable format."""
+
+    if value is None:
+        return "N/A"
+
+    if value >= 1_000_000_000_000:
+        return f"${value / 1_000_000_000_000:.2f}T"
+
+    if value >= 1_000_000_000:
+        return f"${value / 1_000_000_000:.2f}B"
+
+    if value >= 1_000_000:
+        return f"${value / 1_000_000:.2f}M"
+
+    return f"${value:,.0f}"
+
+
+# =========================================================
+# 2. DATA RETRIEVAL
 # =========================================================
 
 def get_price_history(ticker: str, period: str = "1y") -> pd.DataFrame:
+    """Download historical stock prices."""
+
     stock = yf.Ticker(ticker)
     hist = stock.history(period=period)
 
     if hist.empty:
         raise ValueError(f"No price data found for {ticker}")
-    
+
     hist = hist.reset_index()
 
     return hist
 
 
-# =========================================================
-# 2. COMPANY INFO LAYER
-# =========================================================
-
-def format_market_cap(value):
-    if value >= 1_000_000_000_000:
-        return f"${value/1_000_000_000_000:.2f}T"
-    elif value >= 1_000_000_000:
-        return f"${value/1_000_000_000:.2f}B"
-    elif value >= 1_000_000:
-        return f"${value/1_000_000:.2f}M"
-    return str(value)
-    
 def get_company_info(ticker: str) -> dict:
+    """Retrieve company information."""
+
     stock = yf.Ticker(ticker)
     info = stock.info
 
     return {
         "ticker": ticker.upper(),
-        "name": info.get("shortName"),
+        "name": info.get("longName"),
         "sector": info.get("sector"),
         "industry": info.get("industry"),
-        "country": info.get("country"),
         "market_cap": format_market_cap(info.get("marketCap")),
-        "currency": info.get("currency"),
-        "website": info.get("website"),
-        "description": info.get("longBusinessSummary")
+        "description": info.get("longBusinessSummary"),
     }
 
 
 # =========================================================
-# 3. TECHNICAL ANALYSIS LAYER
+# 3. TECHNICAL ANALYSIS
 # =========================================================
 
-def compute_technical_metrics(df: pd.DataFrame) -> dict:
-    df = df.copy()
+def compute_technical_metrics(price_df: pd.DataFrame) -> dict:
 
-    df["returns"] = df["Close"].pct_change()
+    returns = price_df["Close"].pct_change().dropna()
 
-    total_return = (df["Close"].iloc[-1] / df["Close"].iloc[0]) - 1
-    volatility = df["returns"].std() * np.sqrt(252)
+    latest_price = price_df["Close"].iloc[-1]
 
-    df["SMA20"] = df["Close"].rolling(20).mean()
-    df["SMA50"] = df["Close"].rolling(50).mean()
+    total_return = (
+        price_df["Close"].iloc[-1]
+        / price_df["Close"].iloc[0]
+        - 1
+    )
 
-    max_drawdown = (df["Close"] / df["Close"].cummax() - 1).min()
+    volatility = returns.std() * (252 ** 0.5)
 
     return {
-        "latest_price": float(df["Close"].iloc[-1]),
-        "total_return_1y": float(total_return),
-        "volatility": float(volatility),
-        "sma20": float(df["SMA20"].iloc[-1]),
-        "sma50": float(df["SMA50"].iloc[-1]),
-        "max_drawdown": float(max_drawdown)
+        "latest_price": latest_price,
+        "total_return_1y": total_return,
+        "volatility": volatility,
     }
 
 
 # =========================================================
-# 4. RISK FEATURES (simple but powerful later for AI layer)
+# 4. RISK ANALYSIS
 # =========================================================
 
-def compute_risk_features(df: pd.DataFrame) -> dict:
-    returns = df["Close"].pct_change().dropna()
+def compute_risk_features(price_df: pd.DataFrame) -> dict:
+
+    returns = price_df["Close"].pct_change().dropna()
+
+    cumulative = (1 + returns).cumprod()
+
+    rolling_max = cumulative.cummax()
+
+    drawdown = cumulative / rolling_max - 1
 
     return {
-        "daily_volatility": float(returns.std()),
-        "positive_days_ratio": float((returns > 0).mean()),
-        "worst_day": float(returns.min()),
-        "best_day": float(returns.max()),
-        "max_drawdown": float((df["Close"] / df["Close"].cummax() - 1).min())
+        "max_drawdown": drawdown.min(),
+        "best_day": returns.max(),
+        "worst_day": returns.min(),
     }
 
 
 # =========================================================
-# 5. MASTER ANALYSIS ENGINE (THIS IS WHAT APP.PY CALLS)
+# 5. MASTER ANALYSIS ENGINE
 # =========================================================
 
 def analyze_stock(ticker: str) -> dict:
     """
-    Main entry point for AI Equity Research Copilot
+    Main entry point for AI Equity Research Copilot.
     """
 
-    price_df = get_price_history(ticker)
+    price_history = get_price_history(ticker)
+
     company = get_company_info(ticker)
-    tech = compute_technical_metrics(price_df)
-    risk = compute_risk_features(price_df)
+
+    technical = compute_technical_metrics(price_history)
+
+    risk = compute_risk_features(price_history)
 
     return {
         "company": company,
-        "technical": tech,
+        "technical": technical,
         "risk": risk,
-        "price_history": price_df
+        "price_history": price_history,
     }
+
 
 # =========================================================
 # 6. AI ANALYST REPORT
@@ -125,24 +139,60 @@ def generate_ai_report(result: dict) -> str:
     tech = result["technical"]
     risk = result["risk"]
 
+    # Momentum assessment
+    if tech["total_return_1y"] > 0.20:
+        momentum = "strong"
+    elif tech["total_return_1y"] > 0:
+        momentum = "positive"
+    elif tech["total_return_1y"] > -0.20:
+        momentum = "weak"
+    else:
+        momentum = "negative"
+
+    # Volatility assessment
+    if tech["volatility"] < 0.20:
+        volatility = "low"
+    elif tech["volatility"] < 0.35:
+        volatility = "moderate"
+    elif tech["volatility"] < 0.50:
+        volatility = "high"
+    else:
+        volatility = "very high"
+
     report = f"""
-STOCK ANALYSIS REPORT: {company['name']} ({company['ticker']})
+# STOCK ANALYSIS REPORT
 
-📌 Overview
-{company['name']} operates in the {company['sector']} sector, specifically {company['industry']}.
+## Company
 
-📈 Performance
-- 1Y Return: {tech['total_return_1y']*100:.2f}%
+**{company['name']} ({company['ticker']})**
+
+Sector: {company['sector']}
+
+Industry: {company['industry']}
+
+---
+
+## Performance
+
 - Current Price: ${tech['latest_price']:.2f}
-- Volatility: {tech['volatility']*100:.2f}%
+- 1-Year Return: {tech['total_return_1y']:.2%}
+- Annualized Volatility: {tech['volatility']:.2%}
 
-⚠️ Risk
-- Max Drawdown: {risk['max_drawdown']*100:.2f}%
-- Best Day: {risk['best_day']*100:.2f}%
-- Worst Day: {risk['worst_day']*100:.2f}%
+---
 
-🧠 Interpretation
-The stock shows {'strong' if tech['total_return_1y'] > 0.2 else 'moderate'} momentum with {'high' if tech['volatility'] > 0.3 else 'controlled'} volatility characteristics.
+## Risk Profile
+
+- Maximum Drawdown: {risk['max_drawdown']:.2%}
+- Best Trading Day: {risk['best_day']:.2%}
+- Worst Trading Day: {risk['worst_day']:.2%}
+
+---
+
+## Interpretation
+
+{company['name']} has demonstrated **{momentum} momentum** over the past year while exhibiting **{volatility} volatility**.
+
+This report is based on historical market data and should be complemented with fundamental analysis, valuation metrics, earnings trends, and macroeconomic considerations before making an investment decision.
 """
 
     return report
