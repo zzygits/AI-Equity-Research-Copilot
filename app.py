@@ -30,6 +30,8 @@ if st.button("Analyze"):
         )
 
         company = result["company"]
+        score = result["investment_score"]
+        fundamentals = result["fundamentals"]
         tech = result["technical"]
         risk = result["risk"]
 
@@ -42,10 +44,40 @@ if st.button("Analyze"):
         st.write("Sector:", company["sector"])
         st.write("Industry:", company["industry"])
         st.write("Market Cap:", company["market_cap"])
+
+        # -------------------------
+        # Business Summary Section
+        # -------------------------
+
         st.subheader("📝 Business Summary")
         st.write(company["description"])    
 
         st.divider()
+
+        # -------------------------
+        # Investment Score Section
+        # -------------------------
+
+        st.subheader("📝 Business Summary")
+        st.write(company["description"])
+
+        st.divider()
+
+        st.subheader("⭐ Investment Score")
+
+        col1, col2 = st.columns([1, 3])
+
+        with col1:
+            st.metric(
+                "Overall",
+                f"{score['overall']}/10"
+            )
+
+        with col2:
+            st.write("### Breakdown")
+
+            for category, value in score["breakdown"].items():
+                st.progress(value / 10, text=f"{category}: {value}/10")
 
         # -------------------------
         # Chart Section
@@ -96,25 +128,32 @@ if st.button("Analyze"):
         # Fundamental Section
         # -------------------------
 
-        fundamentals = result["fundamentals"]
-
         st.subheader("📊 Fundamental Analysis")
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
 
         col1.metric(
-            "P/E Ratio",
-            f"{fundamentals['trailing_pe']:.2f}" if fundamentals["trailing_pe"] else "N/A"
+            "P/E",
+            f"{fundamentals['trailing_pe']:.2f}"
+            if fundamentals["trailing_pe"] is not None else "N/A"
         )
 
         col2.metric(
             "Forward P/E",
-            f"{fundamentals['forward_pe']:.2f}" if fundamentals["forward_pe"] else "N/A"
+            f"{fundamentals['forward_pe']:.2f}"
+            if fundamentals["forward_pe"] is not None else "N/A"
         )
 
         col3.metric(
-            "PEG Ratio",
-            f"{fundamentals['peg_ratio']:.2f}" if fundamentals["peg_ratio"] else "N/A"
+            "PEG",
+            f"{fundamentals['peg_ratio']:.2f}"
+            if fundamentals["peg_ratio"] is not None else "N/A"
+        )
+
+        col4.metric(
+            "Price / Book",
+            f"{fundamentals['price_to_book']:.2f}"
+            if fundamentals["price_to_book"] is not None else "N/A"
         )
 
         col1, col2, col3 = st.columns(3)
