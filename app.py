@@ -1,5 +1,6 @@
 import plotly.graph_objects as go
 import streamlit as st
+from utils.peers import compare_stocks
 from utils.finance import analyze_stock
 from utils.ai import generate_ai_report
 
@@ -8,6 +9,7 @@ st.set_page_config(page_title="AI Equity Research Copilot", layout="wide")
 st.title("📊 AI Equity Research Copilot")
 
 ticker = st.text_input("Enter Stock Ticker (e.g. AAPL, TSLA, MSFT)")
+
 
 if st.button("Analyze"):
     if ticker:
@@ -235,3 +237,27 @@ if st.button("Analyze"):
         st.warning("Please enter a ticker")
 
     st.write(result["news"])
+
+st.divider()
+
+st.subheader("📊 Compare Multiple Stocks")
+
+comparison_input = st.text_input(
+    "Enter tickers separated by commas",
+    placeholder="AAPL, MSFT, GOOGL"
+)
+
+if st.button("Compare Stocks"):
+
+    if comparison_input:
+
+        tickers = comparison_input.split(",")
+
+        comparison_df = compare_stocks(tickers)
+
+        st.subheader("📊 Stock Comparison")
+
+        st.dataframe(comparison_df, use_container_width=True)
+
+    else:
+        st.warning("Please enter at least two tickers.")
